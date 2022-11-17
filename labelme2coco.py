@@ -33,43 +33,43 @@ class Lableme2CoCo:
                 self.annotations.append(annotation)
                 self.ann_id += 1
             self.img_id += 1
-        instance = {}
-        instance['info'] = 'spytensor created'
-        instance['license'] = ['license']
-        instance['images'] = self.images
-        instance['annotations'] = self.annotations
-        instance['categories'] = self.categories
-        return instance
+        return {
+            'info': 'spytensor created',
+            'license': ['license'],
+            'images': self.images,
+            'annotations': self.annotations,
+            'categories': self.categories,
+        }
 
     # 构建类别
     def _init_categories(self):
         for k, v in classname_to_id.items():
-            category = {}
-            category['id'] = v
-            category['name'] = k
+            category = {'id': v, 'name': k}
             self.categories.append(category)
 
     # 构建COCO的image字段
     def _image(self, obj, path):
-        image = {}
         from labelme import utils
         img_x = utils.img_b64_to_arr(obj['imageData'])
         h, w = img_x.shape[:-1]
-        image['height'] = h
-        image['width'] = w
-        image['id'] = self.img_id
-        image['file_name'] = os.path.basename(path).replace(".json", ".jpg")
-        return image
+        return {
+            'height': h,
+            'width': w,
+            'id': self.img_id,
+            'file_name': os.path.basename(path).replace(".json", ".jpg"),
+        }
 
     # 构建COCO的annotation字段
     def _annotation(self, shape):
         label = shape['label']
         points = shape['points']
-        annotation = {}
-        annotation['id'] = self.ann_id
-        annotation['image_id'] = self.img_id
-        annotation['category_id'] = int(classname_to_id[label])
-        annotation['segmentation'] = [np.asarray(points).flatten().tolist()]
+        annotation = {
+            'id': self.ann_id,
+            'image_id': self.img_id,
+            'category_id': int(classname_to_id[label]),
+            'segmentation': [np.asarray(points).flatten().tolist()],
+        }
+
         annotation['bbox'] = self._get_box(points)
         annotation['iscrowd'] = 0
         annotation['area'] = 1.0
@@ -96,14 +96,14 @@ if __name__ == '__main__':
     labelme_path = "labelme/"
     saved_coco_path = "./"
     # 创建文件
-    if not os.path.exists("%scoco/annotations/"%saved_coco_path):
-        os.makedirs("%scoco/annotations/"%saved_coco_path)
-    if not os.path.exists("%scoco/images/train2017/"%saved_coco_path):
-        os.makedirs("%scoco/images/train2017"%saved_coco_path)
-    if not os.path.exists("%scoco/images/val2017/"%saved_coco_path):
-        os.makedirs("%scoco/images/val2017"%saved_coco_path)
+    if not os.path.exists(f"{saved_coco_path}coco/annotations/"):
+        os.makedirs(f"{saved_coco_path}coco/annotations/")
+    if not os.path.exists(f"{saved_coco_path}coco/images/train2017/"):
+        os.makedirs(f"{saved_coco_path}coco/images/train2017")
+    if not os.path.exists(f"{saved_coco_path}coco/images/val2017/"):
+        os.makedirs(f"{saved_coco_path}coco/images/val2017")
     # 获取images目录下所有的joson文件列表
-    json_list_path = glob.glob(labelme_path + "/*.json")
+    json_list_path = glob.glob(f"{labelme_path}/*.json")
     # 数据划分,这里没有区分val2017和tran2017目录，所有图片都放在images目录下
     train_path, val_path = train_test_split(json_list_path, test_size=0.12)
     print("train_n:", len(train_path), 'val_n:', len(val_path))
@@ -111,13 +111,28 @@ if __name__ == '__main__':
     # 把训练集转化为COCO的json格式
     l2c_train = Lableme2CoCo()
     train_instance = l2c_train.to_coco(train_path)
-    l2c_train.save_coco_json(train_instance, '%scoco/annotations/instances_train2017.json'%saved_coco_path)
+    l2c_train.save_coco_json(
+        train_instance,
+        f'{saved_coco_path}coco/annotations/instances_train2017.json',
+    )
+
     for file in train_path:
-        shutil.copy(file.replace("json","jpg"),"%scoco/images/train2017/"%saved_coco_path)
+        shutil.copy(
+            file.replace("json", "jpg"),
+            f"{saved_coco_path}coco/images/train2017/",
+        )
+
     for file in val_path:
-        shutil.copy(file.replace("json","jpg"),"%scoco/images/val2017/"%saved_coco_path)
+        shutil.copy(
+            file.replace("json", "jpg"),
+            f"{saved_coco_path}coco/images/val2017/",
+        )
+
 
     # 把验证集转化为COCO的json格式
     l2c_val = Lableme2CoCo()
     val_instance = l2c_val.to_coco(val_path)
-    l2c_val.save_coco_json(val_instance, '%scoco/annotations/instances_val2017.json'%saved_coco_path)
+    l2c_val.save_coco_json(
+        val_instance,
+        f'{saved_coco_path}coco/annotations/instances_val2017.json',
+    )

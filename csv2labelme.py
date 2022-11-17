@@ -3,7 +3,7 @@ import cv2
 import json
 import pandas as pd
 import numpy as np
-from glob import glob 
+from glob import glob
 from tqdm import tqdm
 from IPython import embed
 import base64
@@ -15,7 +15,7 @@ total_csv_annotations = {}
 for annotation in annotations:
     key = annotation[0].split(os.sep)[-1]
     value = np.array([annotation[1:]])
-    if key in total_csv_annotations.keys():
+    if key in total_csv_annotations:
         total_csv_annotations[key] = np.concatenate((total_csv_annotations[key],value),axis=0)
     else:
         total_csv_annotations[key] = value
@@ -38,12 +38,23 @@ for key,value in total_csv_annotations.items():
     shapes = []
     for shape in value:
         label = shape[-1]
-        s = {"label":label,"line_color":None,"fill_color":None,"shape_type":"rectangle"}
         points = [
             [shape[0],shape[1]],
             [shape[2],shape[3]]
             ]
-        s["points"] = points
+        s = {
+            "label": label,
+            "line_color": None,
+            "fill_color": None,
+            "shape_type": "rectangle",
+            "points": points,
+        }
+
         shapes.append(s)
     labelme_format["shapes"] = shapes
-    json.dump(labelme_format,open("%s/%s/"%(image_path,key.replace(".jpg",".json")),"w"),ensure_ascii=False, indent=2)
+    json.dump(
+        labelme_format,
+        open(f'{image_path}/{key.replace(".jpg", ".json")}/', "w"),
+        ensure_ascii=False,
+        indent=2,
+    )
