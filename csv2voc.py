@@ -14,20 +14,20 @@ saved_path = "./VOCdevkit/VOC2007/"                #保存路径
 image_save_path = "./JPEGImages/"
 image_raw_parh = "../csv/images/"
 #2.创建要求文件夹
-if not os.path.exists(saved_path + "Annotations"):
-    os.makedirs(saved_path + "Annotations")
-if not os.path.exists(saved_path + "JPEGImages/"):
-    os.makedirs(saved_path + "JPEGImages/")
-if not os.path.exists(saved_path + "ImageSets/Main/"):
-    os.makedirs(saved_path + "ImageSets/Main/")
-    
+if not os.path.exists(f"{saved_path}Annotations"):
+    os.makedirs(f"{saved_path}Annotations")
+if not os.path.exists(f"{saved_path}JPEGImages/"):
+    os.makedirs(f"{saved_path}JPEGImages/")
+if not os.path.exists(f"{saved_path}ImageSets/Main/"):
+    os.makedirs(f"{saved_path}ImageSets/Main/")
+
 #3.获取待处理文件
 total_csv_annotations = {}
 annotations = pd.read_csv(csv_file,header=None).values
 for annotation in annotations:
     key = annotation[0].split(os.sep)[-1]
     value = np.array([annotation[1:]])
-    if key in total_csv_annotations.keys():
+    if key in total_csv_annotations:
         total_csv_annotations[key] = np.concatenate((total_csv_annotations[key],value),axis=0)
     else:
         total_csv_annotations[key] = value
@@ -37,7 +37,7 @@ for filename,label in total_csv_annotations.items():
     #embed()
     height, width, channels = cv2.imread(image_raw_parh + filename).shape
     #embed()
-    with codecs.open(saved_path + "Annotations/"+filename.replace(".jpg",".xml"),"w","utf-8") as xml:
+    with codecs.open(f"{saved_path}Annotations/" + filename.replace(".jpg",".xml"), "w", "utf-8") as xml:
         xml.write('<annotation>\n')
         xml.write('\t<folder>' + 'UAV_data' + '</folder>\n')
         xml.write('\t<filename>' + filename + '</filename>\n')
@@ -69,11 +69,7 @@ for filename,label in total_csv_annotations.items():
             xmax = int(labels[2])
             ymax = int(labels[3])
             label_ = labels[-1]
-            if xmax <= xmin:
-                pass
-            elif ymax <= ymin:
-                pass
-            else:
+            if xmax > xmin and ymax > ymin:
                 xml.write('\t<object>\n')
                 xml.write('\t\t<name>'+label_+'</name>\n')
                 xml.write('\t\t<pose>Unspecified</pose>\n')
@@ -88,33 +84,32 @@ for filename,label in total_csv_annotations.items():
                 xml.write('\t</object>\n')
                 print(filename,xmin,ymin,xmax,ymax,labels)
         xml.write('</annotation>')
-        
+
 
 #6.split files for txt
-txtsavepath = saved_path + "ImageSets/Main/"
-ftrainval = open(txtsavepath+'/trainval.txt', 'w')
-ftest = open(txtsavepath+'/test.txt', 'w')
-ftrain = open(txtsavepath+'/train.txt', 'w')
-fval = open(txtsavepath+'/val.txt', 'w')
-total_files = glob(saved_path+"./Annotations/*.xml")
-total_files = [i.split("/")[-1].split(".xml")[0] for i in total_files]
-#test_filepath = ""
-for file in total_files:
-    ftrainval.write(file + "\n")
+txtsavepath = f"{saved_path}ImageSets/Main/"
+with open(txtsavepath+'/trainval.txt', 'w') as ftrainval:
+    ftest = open(txtsavepath+'/test.txt', 'w')
+    ftrain = open(txtsavepath+'/train.txt', 'w')
+    fval = open(txtsavepath+'/val.txt', 'w')
+    total_files = glob(f"{saved_path}./Annotations/*.xml")
+    total_files = [i.split("/")[-1].split(".xml")[0] for i in total_files]
+    #test_filepath = ""
+    for file in total_files:
+        ftrainval.write(file + "\n")
 
-# move images to voc JPEGImages folder
-for image in glob(image_raw_parh+"/*.jpg"):
-    shutil.copy(image,saved_path+image_save_path)
+    # move images to voc JPEGImages folder
+    for image in glob(f"{image_raw_parh}/*.jpg"):
+        shutil.copy(image,saved_path+image_save_path)
 
-train_files,val_files = train_test_split(total_files,test_size=0.15,random_state=42)
+    train_files,val_files = train_test_split(total_files,test_size=0.15,random_state=42)
 
-for file in train_files:
-    ftrain.write(file + "\n")
-#val
-for file in val_files:
-    fval.write(file + "\n")
+    for file in train_files:
+        ftrain.write(file + "\n")
+    #val
+    for file in val_files:
+        fval.write(file + "\n")
 
-ftrainval.close()
 ftrain.close()
 fval.close()
 #ftest.close()
